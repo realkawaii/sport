@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClassFlow - 雲端同步版 (2026)</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --bg: #f5f7fa;
+            --card-bg: #ffffff;
+            --holiday: #e74c3c;
+            --exam: #f39c12;
+            --class-104: #1abc9c;
+            --class-203: #9b59b6;
+            --class-204: #e67e22;
+        }
+
+        body {
+            font-family: "Microsoft JhengHei", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--primary);
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* Header */
+        header { text-align: center; margin-bottom: 25px; }
+        h1 { margin: 0; font-size: 2rem; color: var(--primary); letter-spacing: 1px; }
+        .subtitle { font-size: 0.9rem; color: #7f8c8d; margin-top: 5px; }
+        
+        /* Connection Status Indicator */
+        #status-indicator {
+            font-size: 0.8rem;
+            margin-top: 5px;
+            font-weight: bold;
+            color: #95a5a6;
+        }
+        .status-online { color: #2ecc71 !important; }
+        .status-offline { color: #e74c3c !important; }
+
+        /* Dashboard */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--bg);
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e1e4e8;
+            padding-top: 10px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            text-align: center;
+            border-left: 6px solid gray;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-2px); }
+        .stat-card.c104 { border-left-color: var(--class-104); }
+        .stat-card.c203 { border-left-color: var(--class-203); }
+        .stat-card.c204 { border-left-color: var(--class-204); }
+
+        .stat-title { font-size: 1.1rem; font-weight: bold; margin-bottom: 5px; color: #555; }
+        .stat-number { font-size: 2.8rem; font-weight: 800; color: var(--primary); line-height: 1.2; }
+        .stat-desc { font-size: 0.85rem; color: #888; margin-top: 5px; }
+
+        /* Table */
+        .schedule-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border: 1px solid #eee;
+        }
+
+        .day-row {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1fr 1fr;
+            border-bottom: 1px solid #f1f1f1;
+            padding: 12px 20px;
+            align-items: center;
+        }
+        .day-row:last-child { border-bottom: none; }
+        
+        .day-row.header {
+            background-color: var(--primary);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 135px;
+            z-index: 90;
+            font-size: 1rem;
+        }
+
+        .date-col { font-weight: bold; display: flex; flex-direction: column; color: #444; }
+        .date-col .desc { font-size: 0.8rem; font-weight: normal; margin-top: 4px; }
+        .class-col { display: flex; justify-content: center; align-items: center; }
+
+        /* Indicators */
+        .holiday-row { background-color: #fff5f5; }
+        .exam-row { background-color: #fffbf0; }
+        .today-row { border-left: 5px solid var(--accent); background-color: #eaf6ff; }
+
+        .tag { padding: 3px 8px; border-radius: 12px; font-size: 0.7rem; color: white; display: inline-block; font-weight: bold; }
+        .tag.holiday { background-color: var(--holiday); }
+        .tag.exam { background-color: var(--exam); }
+
+        /* Controls */
+        .count-ctrl {
+            display: flex; align-items: center; background: #f7f9fc;
+            border-radius: 20px; padding: 3px; border: 1px solid #e0e0e0;
+        }
+        .btn-adj {
+            width: 26px; height: 26px; border: none; border-radius: 50%;
+            background: white; color: var(--primary); font-weight: bold;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: all 0.2s;
+        }
+        .btn-adj:hover { background: var(--accent); color: white; }
+        .btn-adj:active { transform: scale(0.9); }
+        
+        .val-display { width: 35px; text-align: center; font-weight: bold; font-size: 1.1rem; }
+        .val-display.zero { color: #dcdcdc; }
+        .val-display.has-class { color: var(--primary); }
+        .loading-overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(255,255,255,0.8); z-index: 999;
+            display: flex; justify-content: center; align-items: center; font-size: 1.5rem;
+            color: var(--primary);
+        }
+
+        @media (max-width: 600px) {
+            .dashboard { position: static; padding-top: 0; }
+            .day-row.header { top: 0; }
+            .stat-number { font-size: 2rem; }
+            h1 { font-size: 1.5rem; }
+            .day-row { padding: 10px 10px; grid-template-columns: 1.2fr 1fr 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loading" class="loading-overlay">資料讀取中...</div>
+
+    <header>
+        <h1>ClassFlow</h1>
+        <div class="subtitle">雲端同步．授課進度管理 (2026)</div>
+        <div id="status-indicator">連線中...</div>
+    </header>
+
+    <div class="dashboard" id="dashboard"></div>
+
+    <div class="schedule-container">
+        <div class="day-row header">
+            <div>日期</div>
+            <div style="text-align: center;">一年四班</div>
+            <div style="text-align: center;">二年三班</div>
+            <div style="text-align: center;">二年四班</div>
+        </div>
+        <div id="schedule-list"></div>
+    </div>
+
+<script type="module">
+    // --- Firebase Setup ---
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBSHC7ty2cJoTt0k6vX0f-fM0fLBY3X26g",
+      authDomain: "classflow-a21d5.firebaseapp.com",
+      projectId: "classflow-a21d5",
+      storageBucket: "classflow-a21d5.firebasestorage.app",
+      messagingSenderId: "127542009865",
+      appId: "1:127542009865:web:0f28abdae6660740de18d8",
+      measurementId: "G-NWB3H34ZSM"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    
+    // 定義資料庫存儲位置 (Collection: schedules, Document: teacher_data)
+    const docRef = doc(db, "schedules", "teacher_data");
+
+    // --- 全域變數與設定 ---
+    const classes = ['104', '203', '204'];
+    let adjustments = {}; // 存放調整數據
+    let isDataLoaded = false;
+
+    // 日期範圍 (2026)
+    const startDate = new Date('2026-02-13'); 
+    const endDate = new Date('2026-06-30');   
+    const period8Start = new Date('2026-02-23');
+    const period8End = new Date('2026-06-18');
+
+    const holidays = {
+        '2026-02-14': '春節', '2026-02-15': '春節', '2026-02-16': '春節',
+        '2026-02-17': '春節', '2026-02-18': '春節', '2026-02-19': '春節',
+        '2026-02-20': '春節', '2026-02-21': '春節', '2026-02-22': '春節',
+        '2026-02-27': '和平紀念日',
+        '2026-04-17': '全中運', '2026-04-18': '全中運', '2026-04-19': '全中運',
+        '2026-04-20': '全中運', '2026-04-21': '全中運', '2026-04-22': '全中運', '2026-04-23': '全中運',
+        '2026-05-01': '勞動節', '2026-06-19': '端午節'
+    };
+
+    const exams = [
+        { name: '第一次段考', start: '2026-03-24', end: '2026-03-25' },
+        { name: '第二次段考', start: '2026-05-14', end: '2026-05-15' },
+        { name: '第三次段考', start: '2026-06-29', end: '2026-06-30' }
+    ];
+
+    // --- Firebase 監聽 (即時同步) ---
+    const statusDiv = document.getElementById('status-indicator');
+    const loadingDiv = document.getElementById('loading');
+
+    // 監聽資料庫變動
+    onSnapshot(docRef, (docSnap) => {
+        if (docSnap.exists()) {
+            adjustments = docSnap.data();
+            console.log("Data synced from cloud");
+        } else {
+            console.log("No data found, starting fresh.");
+            adjustments = {}; 
+        }
+        
+        // 更新 UI
+        isDataLoaded = true;
+        loadingDiv.style.display = 'none';
+        statusDiv.innerText = "☁️ 已同步至雲端";
+        statusDiv.className = "status-online";
+        render();
+    }, (error) => {
+        console.error("Sync failed:", error);
+        statusDiv.innerText = "⚠️ 無法連線 (請檢查權限)";
+        statusDiv.className = "status-offline";
+        // 即使離線也嘗試渲染
+        if(!isDataLoaded) {
+            loadingDiv.style.display = 'none';
+            render();
+        }
+    });
+
+    // --- 核心邏輯函式 ---
+
+    // 將 Firebase 寫入功能掛載到 window 以便 HTML onclick 使用
+    window.adjust = async function(dateStr, classId, delta) {
+        if (!isDataLoaded) return;
+
+        const key = `${dateStr}_${classId}`;
+        const currentAdj = adjustments[key] || 0;
+        const newVal = currentAdj + delta;
+        
+        // 1. 本地樂觀更新 (Optimistic UI Update) - 讓使用者覺得反應很快
+        adjustments[key] = newVal;
+        render();
+        statusDiv.innerText = "☁️ 儲存中...";
+
+        // 2. 寫入 Firebase
+        try {
+            // 使用 merge: true 確保不會覆蓋掉其他日期的資料
+            await setDoc(docRef, { [key]: newVal }, { merge: true });
+            // 成功後 onSnapshot 會再次觸發確認，這裡先不需做什麼
+        } catch (e) {
+            console.error("Save failed", e);
+            statusDiv.innerText = "⚠️ 儲存失敗";
+            alert("儲存失敗，請檢查網路或權限設定");
+        }
+    };
+
+    function getFormattedDate(date) {
+        const offset = date.getTimezoneOffset() * 60000;
+        const localDate = new Date(date.getTime() - offset);
+        return localDate.toISOString().split('T')[0];
+    }
+
+    function isHoliday(dateStr) { return holidays[dateStr] || null; }
+
+    function getExamInfo(dateStr) {
+        for (let exam of exams) {
+            if (dateStr >= exam.start && dateStr <= exam.end) return exam.name;
+        }
+        return null;
+    }
+
+    function getTargetExam(dateStr) {
+        if (dateStr < exams[0].start) return { name: exams[0].name, targetDate: exams[0].start };
+        if (dateStr < exams[1].start) return { name: exams[1].name, targetDate: exams[1].start };
+        if (dateStr < exams[2].start) return { name: exams[2].name, targetDate: exams[2].start };
+        return { name: "學期結束", targetDate: null };
+    }
+
+    function getStandardLessons(date) {
+        const dayOfWeek = date.getDay();
+        const dateStr = getFormattedDate(date);
+        let lessons = { '104': 0, '203': 0, '204': 0 };
+
+        if (dayOfWeek === 0 || dayOfWeek === 6) return lessons;
+        if (getExamInfo(dateStr)) return lessons;
+        if (isHoliday(dateStr)) return lessons;
+
+        // 正課
+        if ([1, 2, 3, 5].includes(dayOfWeek)) {
+            lessons['104'] += 1; lessons['203'] += 1; lessons['204'] += 1;
+        }
+        // 第八節
+        if (date >= period8Start && date <= period8End) {
+            if (dayOfWeek === 1) lessons['104'] += 1;
+            if (dayOfWeek === 4) lessons['203'] += 1;
+            if (dayOfWeek === 5) lessons['204'] += 1;
+        }
+        return lessons;
+    }
+
+    function render() {
+        const dashboard = document.getElementById('dashboard');
+        const list = document.getElementById('schedule-list');
+        
+        dashboard.innerHTML = '';
+        list.innerHTML = '';
+
+        let totals = { '104': 0, '203': 0, '204': 0 };
+        const todayStr = getFormattedDate(new Date());
+        const currentTarget = getTargetExam(todayStr);
+
+        let currentDate = new Date(startDate);
+        while (currentDate <= endDate) {
+            const dateStr = getFormattedDate(currentDate);
+            const dayOfWeek = currentDate.getDay();
+            const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+            
+            if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                const holidayName = isHoliday(dateStr);
+                const examName = getExamInfo(dateStr);
+                const baseLessons = getStandardLessons(currentDate);
+                
+                let dayLessons = {};
+                classes.forEach(c => {
+                    const adjKey = `${dateStr}_${c}`;
+                    const adj = adjustments[adjKey] || 0;
+                    dayLessons[c] = baseLessons[c] + adj;
+                    if (dayLessons[c] < 0) dayLessons[c] = 0;
+
+                    if (dateStr >= todayStr && currentTarget.targetDate && dateStr < currentTarget.targetDate) {
+                         totals[c] += dayLessons[c];
+                    }
+                });
+
+                const row = document.createElement('div');
+                row.className = `day-row ${holidayName ? 'holiday-row' : ''} ${examName ? 'exam-row' : ''} ${dateStr === todayStr ? 'today-row' : ''}`;
+                
+                let dateHtml = `
+                    <div class="date-col">
+                        <span>${currentDate.getMonth()+1}/${currentDate.getDate()} (${weekDays[dayOfWeek]})</span>
+                        <div class="desc">
+                            ${holidayName ? `<span class="tag holiday">${holidayName}</span>` : ''}
+                            ${examName ? `<span class="tag exam">${examName}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+
+                let classesHtml = '';
+                classes.forEach(c => {
+                    const count = dayLessons[c];
+                    const activeClass = count > 0 ? 'has-class' : 'zero';
+                    classesHtml += `
+                        <div class="class-col">
+                            <div class="count-ctrl">
+                                <button class="btn-adj" onclick="adjust('${dateStr}', '${c}', -1)">-</button>
+                                <div class="val-display ${activeClass}">${count}</div>
+                                <button class="btn-adj" onclick="adjust('${dateStr}', '${c}', 1)">+</button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                row.innerHTML = dateHtml + classesHtml;
+                list.appendChild(row);
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        const dashTitle = currentTarget.targetDate 
+            ? `距離 ${currentTarget.name} (${currentTarget.targetDate.slice(5)}) 還有` 
+            : "本學期課程已結束";
+
+        classes.forEach(c => {
+            const card = document.createElement('div');
+            card.className = `stat-card c${c}`;
+            let classNameStr = c === '104' ? '一年四班' : (c === '203' ? '二年三班' : '二年四班');
+            card.innerHTML = `
+                <div class="stat-title">${classNameStr}</div>
+                <div class="stat-number">${totals[c]}</div>
+                <div class="stat-desc">${dashTitle}</div>
+            `;
+            dashboard.appendChild(card);
+        });
+    }
+</script>
+</body>
+</html>
