@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>個人運動追蹤紀錄 (Firebase版)</title>
+    <title>運動追蹤與月跑量統計</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body { font-family: '微軟正黑體', sans-serif; background-color: #f3f4f6; }
         .hidden { display: none; }
-        /* 載入中的轉圈圈動畫 */
         .loader {
             border: 4px solid #f3f3f3;
             border-top: 4px solid #3498db;
@@ -24,98 +23,112 @@
 </head>
 <body class="p-4 md:p-8">
 
-    <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+    <div class="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        <div class="bg-indigo-600 p-4 text-white text-center">
-            <h1 class="text-2xl font-bold"><i class="fas fa-fire mr-2"></i>雲端運動紀錄</h1>
-            <p class="text-sm opacity-80 mt-1">資料同步儲存於 Firebase</p>
-        </div>
-
-        <div class="p-6">
-            <form id="exerciseForm" class="space-y-4">
-                <input type="hidden" id="recordId"> <div>
-                    <label class="block text-gray-700 font-bold mb-1">日期</label>
-                    <input type="date" id="date" class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="bg-indigo-600 p-4 text-white text-center">
+                    <h1 class="text-xl font-bold"><i class="fas fa-running mr-2"></i>新增運動紀錄</h1>
                 </div>
+                <div class="p-6">
+                    <form id="exerciseForm" class="space-y-4">
+                        <input type="hidden" id="recordId"> 
 
-                <div>
-                    <label class="block text-gray-700 font-bold mb-1">運動項目</label>
-                    <select id="type" class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <option value="running">跑步</option>
-                        <option value="plank">平板撐</option>
-                        <option value="other">其他</option>
-                    </select>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-gray-700 font-bold mb-1">日期</label>
+                                <input type="date" id="date" class="w-full border rounded p-2 focus:ring-2 focus:ring-indigo-500" required>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 font-bold mb-1">項目</label>
+                                <select id="type" class="w-full border rounded p-2 focus:ring-2 focus:ring-indigo-500">
+                                    <option value="running">跑步</option>
+                                    <option value="plank">平板撐</option>
+                                    <option value="other">其他</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="runningFields" class="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+                            <div class="mb-3">
+                                <label class="block text-gray-700 font-bold text-sm mb-1">距離 (km)</label>
+                                <input type="number" id="runDistance" step="0.01" placeholder="例如: 5.25" class="w-full border rounded p-2">
+                            </div>
+                            <div class="flex gap-2">
+                                <div class="flex-1">
+                                    <label class="block text-gray-700 font-bold text-sm mb-1">時間 (分)</label>
+                                    <input type="number" id="runMin" placeholder="45" class="w-full border rounded p-2">
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-gray-700 font-bold text-sm mb-1">時間 (秒)</label>
+                                    <input type="number" id="runSec" placeholder="12" class="w-full border rounded p-2">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="plankFields" class="hidden bg-orange-50 p-4 rounded-lg border border-orange-100 grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-gray-700 font-bold text-sm">秒數/次</label>
+                                <input type="number" id="plankTime" placeholder="60" class="w-full border rounded p-2">
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 font-bold text-sm">組數</label>
+                                <input type="number" id="plankSets" placeholder="3" class="w-full border rounded p-2">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-gray-700 font-bold mb-1">備註</label>
+                            <input type="text" id="notes" placeholder="心情、備註..." class="w-full border rounded p-2">
+                        </div>
+
+                        <div class="flex gap-2 pt-2">
+                            <button type="submit" id="submitBtn" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition">
+                                <i class="fas fa-save mr-1"></i> 儲存
+                            </button>
+                            <button type="button" id="cancelBtn" class="hidden w-24 bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded transition">
+                                取消
+                            </button>
+                        </div>
+                    </form>
                 </div>
+            </div>
 
-                <div id="runningFields" class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-gray-600 text-sm">距離 (公里/km)</label>
-                        <input type="number" id="runDistance" step="0.1" placeholder="例如: 5.0" class="w-full border rounded p-2">
-                    </div>
-                    <div>
-                        <label class="block text-gray-600 text-sm">時間 (分鐘)</label>
-                        <input type="number" id="runTime" placeholder="例如: 30" class="w-full border rounded p-2">
-                    </div>
-                </div>
-
-                <div id="plankFields" class="hidden grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-gray-600 text-sm">單次時間 (秒)</label>
-                        <input type="number" id="plankTime" placeholder="例如: 60" class="w-full border rounded p-2">
-                    </div>
-                    <div>
-                        <label class="block text-gray-600 text-sm">幾組</label>
-                        <input type="number" id="plankSets" placeholder="例如: 3" class="w-full border rounded p-2">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-gray-700 font-bold mb-1">備註</label>
-                    <textarea id="notes" rows="2" placeholder="今天狀況如何？或其他運動內容..." class="w-full border rounded p-2"></textarea>
-                </div>
-
-                <div class="flex gap-2">
-                    <button type="submit" id="submitBtn" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition">
-                        <i class="fas fa-cloud-upload-alt mr-1"></i> 儲存至雲端
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4 flex justify-between items-center">
+                    歷史紀錄
+                    <button id="refreshBtn" class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1 rounded transition">
+                        <i class="fas fa-sync-alt"></i>
                     </button>
-                    <button type="button" id="cancelBtn" class="hidden flex-1 bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded transition">
-                        取消編輯
-                    </button>
-                </div>
-            </form>
+                </h2>
+                <div id="loading" class="loader hidden"></div>
+                <div id="recordList" class="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                    </div>
+            </div>
         </div>
 
-        <div class="bg-gray-50 border-t p-6">
-            <h2 class="text-xl font-bold text-gray-800 mb-4 flex justify-between items-center">
-                歷史紀錄
-                <button id="refreshBtn" class="text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded">
-                    <i class="fas fa-sync-alt"></i> 重新整理
-                </button>
-            </h2>
-            
-            <div id="loading" class="loader hidden"></div>
-            
-            <div id="recordList" class="space-y-3">
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden sticky top-8">
+                <div class="bg-gradient-to-r from-green-500 to-teal-600 p-4 text-white">
+                    <h2 class="text-lg font-bold"><i class="fas fa-chart-line mr-2"></i>月跑量統計</h2>
                 </div>
+                <div class="p-4">
+                    <div id="statsList" class="space-y-4">
+                        <p class="text-gray-500 text-sm text-center py-4">累積數據計算中...</p>
+                    </div>
+                </div>
+                <div class="bg-gray-50 p-3 text-xs text-gray-500 text-center border-t">
+                    只統計「跑步」類別的距離
+                </div>
+            </div>
         </div>
+
     </div>
 
     <script type="module">
-        // 引入 Firebase 必要的函式庫
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { 
-            getFirestore, 
-            collection, 
-            addDoc, 
-            getDocs, 
-            doc, 
-            updateDoc, 
-            deleteDoc, 
-            query, 
-            orderBy 
-        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 您的 Firebase 設定
         const firebaseConfig = {
             apiKey: "AIzaSyDJcIZuFnNa-RFRIpgZbvTYd82g_hC8_To",
             authDomain: "sport-2ab23.firebaseapp.com",
@@ -126,133 +139,171 @@
             measurementId: "G-0YD9060YC9"
         };
 
-        // 初始化 Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const COLLECTION_NAME = "exercises"; // 資料庫集合名稱
+        const COLLECTION_NAME = "exercises";
+        
+        // 全域變數快取資料，用於統計
+        let allRecordsCache = [];
 
-        // --- 將功能綁定到 window 物件，以便 HTML onclick 可以呼叫 ---
-
-        // 1. 切換顯示欄位
+        // 1. 切換欄位顯示
         window.toggleFields = function() {
             const type = document.getElementById('type').value;
-            const runningFields = document.getElementById('runningFields');
-            const plankFields = document.getElementById('plankFields');
+            document.getElementById('runningFields').classList.add('hidden');
+            document.getElementById('plankFields').classList.add('hidden');
 
-            runningFields.classList.add('hidden');
-            plankFields.classList.add('hidden');
-
-            if (type === 'running') {
-                runningFields.classList.remove('hidden');
-            } else if (type === 'plank') {
-                plankFields.classList.remove('hidden');
-            }
+            if (type === 'running') document.getElementById('runningFields').classList.remove('hidden');
+            if (type === 'plank') document.getElementById('plankFields').classList.remove('hidden');
         };
 
-        // 2. 載入資料 (Read)
+        // 2. 載入資料並更新統計
         window.loadRecords = async function() {
             const listContainer = document.getElementById('recordList');
             const loader = document.getElementById('loading');
             
             listContainer.innerHTML = '';
-            loader.classList.remove('hidden'); // 顯示讀取圈圈
+            loader.classList.remove('hidden');
 
             try {
-                // 依日期降序排列 (最新的在上面)
                 const q = query(collection(db, COLLECTION_NAME), orderBy("date", "desc"));
                 const querySnapshot = await getDocs(q);
                 
-                loader.classList.add('hidden'); // 隱藏讀取圈圈
-
-                if (querySnapshot.empty) {
-                    listContainer.innerHTML = '<p class="text-gray-500 text-center">目前沒有紀錄。</p>';
-                    return;
-                }
-
+                allRecordsCache = [];
                 querySnapshot.forEach((doc) => {
-                    const record = doc.data();
-                    record.id = doc.id; // 把 ID 存進去方便之後修改刪除
-                    renderRecordItem(record, listContainer);
+                    const data = doc.data();
+                    data.id = doc.id;
+                    allRecordsCache.push(data);
                 });
 
-            } catch (error) {
-                console.error("讀取失敗:", error);
                 loader.classList.add('hidden');
-                listContainer.innerHTML = `<p class="text-red-500 text-center">讀取失敗，請檢查網路或 Firebase 權限。<br><small>${error.message}</small></p>`;
+                
+                // 渲染列表
+                if (allRecordsCache.length === 0) {
+                    listContainer.innerHTML = '<p class="text-gray-400 text-center py-4">目前沒有任何紀錄</p>';
+                } else {
+                    allRecordsCache.forEach(record => renderRecordItem(record, listContainer));
+                }
+
+                // 計算並渲染統計
+                renderStats(allRecordsCache);
+
+            } catch (error) {
+                console.error(error);
+                loader.classList.add('hidden');
+                listContainer.innerHTML = `<p class="text-red-500 text-center">讀取失敗</p>`;
             }
         };
 
-        // 渲染單筆紀錄的 HTML
+        // 3. 渲染單筆項目
         function renderRecordItem(record, container) {
-            let typeLabel = '';
-            let detailText = '';
-            let iconClass = '';
-            let bgColor = '';
-
+            let typeHtml = '';
+            let contentHtml = '';
+            
             if (record.type === 'running') {
-                typeLabel = '跑步';
-                iconClass = 'fa-running';
-                bgColor = 'bg-green-100 text-green-800';
-                detailText = `距離: ${record.details.distance || 0} km / 時間: ${record.details.time || 0} 分`;
+                typeHtml = `<span class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-bold"><i class="fas fa-running mr-1"></i>跑步</span>`;
+                // 處理舊資料相容性 (如果沒有 min/sec 欄位)
+                const min = record.details.min || record.details.time || 0; 
+                const sec = record.details.sec ? `:${String(record.details.sec).padStart(2, '0')}` : ':00';
+                const dist = parseFloat(record.details.distance || 0).toFixed(2);
+                
+                contentHtml = `<div class="font-mono text-gray-800 font-bold text-lg">${dist} <span class="text-sm text-gray-500">km</span></div>
+                               <div class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded inline-block"><i class="far fa-clock mr-1"></i>${min}${sec}</div>`;
+            
             } else if (record.type === 'plank') {
-                typeLabel = '平板撐';
-                iconClass = 'fa-child';
-                bgColor = 'bg-orange-100 text-orange-800';
-                detailText = `時間: ${record.details.time || 0} 秒 / 組數: ${record.details.sets || 0} 組`;
+                typeHtml = `<span class="bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded-full font-bold"><i class="fas fa-child mr-1"></i>平板撐</span>`;
+                contentHtml = `<div class="font-bold text-gray-800">${record.details.time} 秒 × ${record.details.sets} 組</div>`;
+            
             } else {
-                typeLabel = '其他';
-                iconClass = 'fa-bicycle';
-                bgColor = 'bg-gray-100 text-gray-800';
-                detailText = '自定義訓練';
+                typeHtml = `<span class="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full font-bold">其他</span>`;
+                contentHtml = `<div class="text-gray-500 text-sm">一般訓練</div>`;
             }
 
             const item = document.createElement('div');
-            item.className = 'bg-white border rounded-lg p-3 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-2';
+            item.className = 'bg-gray-50 border border-gray-200 rounded-lg p-3 hover:shadow-md transition duration-200';
             item.innerHTML = `
-                <div class="flex-1">
-                    <div class="flex items-center gap-2 mb-1">
-                        <span class="text-gray-500 text-sm font-mono">${record.date}</span>
-                        <span class="${bgColor} text-xs px-2 py-1 rounded-full font-bold">
-                            <i class="fas ${iconClass} mr-1"></i>${typeLabel}
-                        </span>
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-gray-500 font-mono text-sm">${record.date}</span>
+                            ${typeHtml}
+                        </div>
+                        ${contentHtml}
+                        ${record.notes ? `<div class="mt-2 text-sm text-gray-600 border-l-2 border-gray-300 pl-2">${record.notes}</div>` : ''}
                     </div>
-                    <div class="font-bold text-gray-800">${detailText}</div>
-                    ${record.notes ? `<div class="text-gray-500 text-sm mt-1"><i class="fas fa-sticky-note mr-1"></i>${record.notes}</div>` : ''}
-                </div>
-                <div class="flex gap-2 mt-2 md:mt-0">
-                    <button onclick="window.prepareEdit('${record.id}')" class="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 text-sm transition">
-                        <i class="fas fa-edit"></i> 修改
-                    </button>
-                    <button onclick="window.deleteRecord('${record.id}')" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm transition">
-                        <i class="fas fa-trash"></i> 刪除
-                    </button>
+                    <div class="flex flex-col gap-2">
+                        <button onclick="window.prepareEdit('${record.id}')" class="text-gray-400 hover:text-indigo-600 transition"><i class="fas fa-edit"></i></button>
+                        <button onclick="window.deleteRecord('${record.id}')" class="text-gray-400 hover:text-red-500 transition"><i class="fas fa-trash-alt"></i></button>
+                    </div>
                 </div>
             `;
             container.appendChild(item);
         }
 
-        // 3. 儲存紀錄 (Create / Update)
+        // 4. 計算並渲染統計 (按月分組)
+        function renderStats(records) {
+            const statsContainer = document.getElementById('statsList');
+            const monthlyStats = {};
+
+            // 過濾並計算
+            records.forEach(r => {
+                if (r.type === 'running' && r.details.distance) {
+                    // 取得 YYYY-MM
+                    const monthKey = r.date.substring(0, 7); 
+                    if (!monthlyStats[monthKey]) monthlyStats[monthKey] = 0;
+                    // 浮點數累加
+                    monthlyStats[monthKey] += parseFloat(r.details.distance);
+                }
+            });
+
+            // 排序月份 (新的月份在上面)
+            const sortedMonths = Object.keys(monthlyStats).sort().reverse();
+
+            if (sortedMonths.length === 0) {
+                statsContainer.innerHTML = '<div class="text-center text-gray-400 text-sm">尚無跑步數據</div>';
+                return;
+            }
+
+            let html = '';
+            sortedMonths.forEach(month => {
+                const totalDist = monthlyStats[month].toFixed(2); // 取小數點後兩位
+                // 分割年份和月份顯示
+                const [y, m] = month.split('-');
+                
+                html += `
+                <div class="flex justify-between items-center border-b border-gray-100 pb-2 last:border-0">
+                    <div class="flex items-center">
+                        <div class="bg-green-100 text-green-600 w-10 h-10 rounded-full flex items-center justify-center font-bold mr-3 text-sm">
+                            ${m}月
+                        </div>
+                        <div class="text-gray-600 text-sm font-bold">${y}年</div>
+                    </div>
+                    <div class="text-xl font-mono font-bold text-gray-800">
+                        ${totalDist} <span class="text-xs text-gray-400 font-sans">km</span>
+                    </div>
+                </div>`;
+            });
+
+            statsContainer.innerHTML = html;
+        }
+
+        // 5. 儲存 (新增/修改)
         window.saveRecord = async function(e) {
             e.preventDefault();
             const submitBtn = document.getElementById('submitBtn');
-            const originalBtnText = submitBtn.innerHTML;
-            
-            // 按鈕變為載入中狀態
+            const originalText = submitBtn.innerHTML;
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 處理中...';
+            submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
 
             try {
                 const id = document.getElementById('recordId').value;
-                const date = document.getElementById('date').value;
                 const type = document.getElementById('type').value;
-                const notes = document.getElementById('notes').value;
-                
                 let details = {};
 
                 if (type === 'running') {
                     details = {
                         distance: document.getElementById('runDistance').value,
-                        time: document.getElementById('runTime').value
+                        min: document.getElementById('runMin').value, // 分
+                        sec: document.getElementById('runSec').value  // 秒
                     };
                 } else if (type === 'plank') {
                     details = {
@@ -261,153 +312,95 @@
                     };
                 }
 
-                const data = { date, type, details, notes };
+                const data = {
+                    date: document.getElementById('date').value,
+                    type: type,
+                    notes: document.getElementById('notes').value,
+                    details: details
+                };
 
                 if (id) {
-                    // 更新模式
-                    const docRef = doc(db, COLLECTION_NAME, id);
-                    await updateDoc(docRef, data);
-                    alert("更新成功！");
+                    await updateDoc(doc(db, COLLECTION_NAME, id), data);
                 } else {
-                    // 新增模式
                     await addDoc(collection(db, COLLECTION_NAME), data);
-                    alert("新增成功！");
                 }
 
                 window.resetForm();
-                window.loadRecords(); // 重新讀取列表
+                window.loadRecords(); // 重新讀取以更新統計
 
             } catch (error) {
-                console.error("儲存錯誤:", error);
-                alert("儲存失敗: " + error.message);
+                alert('儲存錯誤: ' + error.message);
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = originalBtnText;
+                submitBtn.innerHTML = originalText;
             }
         };
 
-        // 4. 準備編輯 (將資料填回表單)
-        // 注意：因為要從 Firestore 拿該筆資料的詳細內容，這裡我們直接從畫面上的變數或重新抓取都可以
-        // 為了簡單，我們直接用全域變數暫存資料，或者再次查詢
-        // 這裡採用: 因為我們剛剛 loadRecords 有把 ID 寫在 DOM 上，我們用 ID 去陣列找太慢，直接重抓一次單筆或傳遞參數
-        // 簡單做法：我們在 loadRecords 時其實已經拿到資料，但為了不讓全域變數太亂，我們這裡用 "查詢單筆" 的方式，確保資料最新
-        // 但為了效能，更好的方式是在 render 時把資料綁在 DOM 元素上。這裡為了程式碼好讀，我們稍微變通一下：
-        // 修改 renderRecordItem 的按鈕，我們不實作複雜的傳遞，直接用 getDoc (雖然多一次請求但安全)
-        // *修正*：為了避免太複雜，我們直接遍歷目前的 DOM 或重新整理邏輯。
-        // 最簡單方式：我們建立一個暫存物件在 window 下。
-        
-        let currentRecordsCache = []; // 簡單的快取
-
-        const originalLoadRecords = window.loadRecords;
-        window.loadRecords = async function() {
-            // 攔截原本的 loadRecords 來做快取
-            const listContainer = document.getElementById('recordList');
-            const loader = document.getElementById('loading');
-            listContainer.innerHTML = '';
-            loader.classList.remove('hidden');
-
-            try {
-                const q = query(collection(db, COLLECTION_NAME), orderBy("date", "desc"));
-                const querySnapshot = await getDocs(q);
-                
-                currentRecordsCache = []; // 清空快取
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    data.id = doc.id;
-                    currentRecordsCache.push(data);
-                });
-
-                loader.classList.add('hidden');
-                
-                if (currentRecordsCache.length === 0) {
-                    listContainer.innerHTML = '<p class="text-gray-500 text-center">目前沒有紀錄。</p>';
-                } else {
-                    currentRecordsCache.forEach(record => renderRecordItem(record, listContainer));
-                }
-            } catch(e) {
-                console.error(e);
-                loader.classList.add('hidden');
-            }
-        }
-
+        // 6. 準備編輯
         window.prepareEdit = function(id) {
-            const record = currentRecordsCache.find(r => r.id === id);
+            const record = allRecordsCache.find(r => r.id === id);
             if (!record) return;
 
             document.getElementById('recordId').value = record.id;
             document.getElementById('date').value = record.date;
             document.getElementById('type').value = record.type;
-            document.getElementById('notes').value = record.notes;
+            document.getElementById('notes').value = record.notes || '';
 
             window.toggleFields();
 
             if (record.type === 'running') {
-                document.getElementById('runDistance').value = record.details.distance;
-                document.getElementById('runTime').value = record.details.time;
+                document.getElementById('runDistance').value = record.details.distance || '';
+                document.getElementById('runMin').value = record.details.min || record.details.time || '';
+                document.getElementById('runSec').value = record.details.sec || '';
             } else if (record.type === 'plank') {
-                document.getElementById('plankTime').value = record.details.time;
-                document.getElementById('plankSets').value = record.details.sets;
+                document.getElementById('plankTime').value = record.details.time || '';
+                document.getElementById('plankSets').value = record.details.sets || '';
             }
 
-            // 改變 UI 狀態
-            const submitBtn = document.getElementById('submitBtn');
-            submitBtn.innerHTML = '<i class="fas fa-sync mr-1"></i> 更新紀錄';
-            submitBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
-            submitBtn.classList.add('bg-yellow-600', 'hover:bg-yellow-700');
-            
+            const btn = document.getElementById('submitBtn');
+            btn.innerHTML = '<i class="fas fa-check mr-1"></i> 更新';
+            btn.classList.replace('bg-indigo-600', 'bg-yellow-600');
+            btn.classList.replace('hover:bg-indigo-700', 'hover:bg-yellow-700');
             document.getElementById('cancelBtn').classList.remove('hidden');
             
-            // 滾動到頂部
             window.scrollTo({ top: 0, behavior: 'smooth' });
         };
 
-        // 5. 刪除紀錄
+        // 7. 刪除
         window.deleteRecord = async function(id) {
-            if (!confirm('確定要永久刪除這筆紀錄嗎？')) return;
-
+            if (!confirm('確定刪除？')) return;
             try {
                 await deleteDoc(doc(db, COLLECTION_NAME, id));
-                // 移除快取中的該筆資料
-                currentRecordsCache = currentRecordsCache.filter(r => r.id !== id);
-                // 重新渲染畫面 (不需要重新請求 API，節省流量)
-                const listContainer = document.getElementById('recordList');
-                listContainer.innerHTML = '';
-                if (currentRecordsCache.length === 0) {
-                    listContainer.innerHTML = '<p class="text-gray-500 text-center">目前沒有紀錄。</p>';
-                } else {
-                    currentRecordsCache.forEach(record => renderRecordItem(record, listContainer));
-                }
-                alert('已刪除');
-            } catch (error) {
-                alert('刪除失敗: ' + error.message);
+                window.loadRecords();
+            } catch (e) {
+                alert('刪除失敗');
             }
         };
 
-        // 6. 重置表單
+        // 8. 重置
         window.resetForm = function() {
             document.getElementById('exerciseForm').reset();
             document.getElementById('recordId').value = '';
             document.getElementById('date').valueAsDate = new Date();
             
-            const submitBtn = document.getElementById('submitBtn');
-            submitBtn.innerHTML = '<i class="fas fa-cloud-upload-alt mr-1"></i> 儲存至雲端';
-            submitBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
-            submitBtn.classList.remove('bg-yellow-600', 'hover:bg-yellow-700');
-            
+            const btn = document.getElementById('submitBtn');
+            btn.innerHTML = '<i class="fas fa-save mr-1"></i> 儲存';
+            btn.classList.replace('bg-yellow-600', 'bg-indigo-600');
+            btn.classList.replace('hover:bg-yellow-700', 'hover:bg-indigo-700');
             document.getElementById('cancelBtn').classList.add('hidden');
             window.toggleFields();
         };
 
-        // 綁定 DOM 事件
-        document.getElementById('type').addEventListener('change', window.toggleFields);
+        // 初始化 Event Listeners
         document.getElementById('exerciseForm').addEventListener('submit', window.saveRecord);
+        document.getElementById('type').addEventListener('change', window.toggleFields);
         document.getElementById('cancelBtn').addEventListener('click', window.resetForm);
         document.getElementById('refreshBtn').addEventListener('click', window.loadRecords);
 
-        // 初始化
+        // 啟動
         document.getElementById('date').valueAsDate = new Date();
         window.loadRecords();
-
+        window.toggleFields();
     </script>
 </body>
 </html>
